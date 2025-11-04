@@ -21,41 +21,43 @@ const EMAILJS_CONFIG = {
     emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
 })();
 
-// ==========================================
-// QUIZ DATA
-// ==========================================
+/* ============================
+   Quiz Data (edit as needed)
+   ============================ */
+
+const QUIZ_TIME_SECONDS = 5 * 60; // 5 minutes
 
 const quizQuestions = [
-    {
-        id: 1,
-        question: "What is the capital city of France?",
-        correctAnswer: "Paris",
-        keywords: ["paris"] // For flexible matching
-    },
-    {
-        id: 2,
-        question: "Who wrote the play 'Romeo and Juliet'?",
-        correctAnswer: "William Shakespeare",
-        keywords: ["shakespeare", "william shakespeare"]
-    },
-    {
-        id: 3,
-        question: "What is the largest planet in our solar system?",
-        correctAnswer: "Jupiter",
-        keywords: ["jupiter"]
-    },
-    {
-        id: 4,
-        question: "In which year did World War II end?",
-        correctAnswer: "1945",
-        keywords: ["1945"]
-    },
-    {
-        id: 5,
-        question: "What is the chemical symbol for gold?",
-        correctAnswer: "Au",
-        keywords: ["au"]
-    }
+  {
+    id: 1,
+    question: "What is the capital city of France?",
+    options: ["London", "Paris", "Berlin", "Madrid"],
+    correctAnswer: "Paris"
+  },
+  {
+    id: 2,
+    question: "Who developed the theory of relativity?",
+    options: ["Isaac Newton", "Albert Einstein", "Nikola Tesla", "Stephen Hawking"],
+    correctAnswer: "Albert Einstein"
+  },
+  {
+    id: 3,
+    question: "What is the chemical symbol for water?",
+    options: ["H2O", "CO2", "O2", "NaCl"],
+    correctAnswer: "H2O"
+  },
+  {
+    id: 4,
+    question: "In which year did World War II end?",
+    options: ["1943", "1944", "1945", "1946"],
+    correctAnswer: "1945"
+  },
+  {
+    id: 5,
+    question: "What is the largest planet in our solar system?",
+    options: ["Earth", "Mars", "Jupiter", "Saturn"],
+    correctAnswer: "Jupiter"
+  },
 ];
 
 // ==========================================
@@ -121,29 +123,45 @@ function displayQuestion() {
     const question = quizQuestions[currentQuestionIndex];
     const questionContainer = document.getElementById('questionContainer');
     
+    // Create question HTML with multiple choice options
+    let optionsHTML = '';
+    
+    question.options.forEach((option, index) => {
+        const isSelected = userAnswers[currentQuestionIndex] === option;
+        const selectedClass = isSelected ? 'option-selected' : '';
+        
+        optionsHTML += `
+            <button type="button" 
+                    class="option-btn ${selectedClass}" 
+                    onclick="selectOption('${option.replace(/'/g, "\\'")}', ${index})"
+                    data-option-index="${index}">
+                <div class="option-radio">
+                    <div class="option-radio-dot ${isSelected ? '' : 'hidden'}"></div>
+                </div>
+                <span class="option-text">${option}</span>
+            </button>
+        `;
+    });
+    
     // Create question HTML
     questionContainer.innerHTML = `
         <div class="question-slide-in">
             <div class="mb-2">
-                <span class="bg-indigo-100 text-indigo-800 text-sm font-semibold px-3 py-1 rounded-full">
+                <span class="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200 text-sm font-semibold px-3 py-1 rounded-full">
                     Question ${currentQuestionIndex + 1}
                 </span>
             </div>
-            <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">${question.question}</h3>
+            <h3 class="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-6">${question.question}</h3>
             <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="answer">
-                    Your Answer:
+                <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-3">
+                    Select your answer:
                 </label>
-                <textarea 
-                    id="answer" 
-                    rows="4" 
-                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-indigo-600 focus:outline-none resize-none"
-                    placeholder="Type your answer here..."
-                    autocomplete="off"
-                >${userAnswers[currentQuestionIndex]}</textarea>
+                <div class="options-container space-y-3">
+                    ${optionsHTML}
+                </div>
             </div>
-            <p class="text-sm text-gray-500">
-                <span class="font-semibold">Tip:</span> Be specific and concise in your answer.
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                <span class="font-semibold">Tip:</span> Choose the most accurate answer.
             </p>
         </div>
     `;
@@ -153,21 +171,32 @@ function displayQuestion() {
     
     // Update navigation buttons
     updateNavigationButtons();
+}
+
+function selectOption(selectedAnswer, optionIndex) {
+    // Save the selected answer
+    userAnswers[currentQuestionIndex] = selectedAnswer;
+    saveProgress();
     
-    // Focus on textarea
-    document.getElementById('answer').focus();
-    
-    // Auto-save answer on input
-    document.getElementById('answer').addEventListener('input', function(e) {
-        userAnswers[currentQuestionIndex] = e.target.value;
-        saveProgress();
+    // Update UI - remove selected class from all options
+    const allOptions = document.querySelectorAll('.option-btn');
+    allOptions.forEach(btn => {
+        btn.classList.remove('option-selected');
+        const dot = btn.querySelector('.option-radio-dot');
+        if (dot) dot.classList.add('hidden');
     });
+    
+    // Add selected class to clicked option
+    const clickedOption = document.querySelector(`[data-option-index="${optionIndex}"]`);
+    if (clickedOption) {
+        clickedOption.classList.add('option-selected');
+        const dot = clickedOption.querySelector('.option-radio-dot');
+        if (dot) dot.classList.remove('hidden');
+    }
 }
 
 function nextQuestion() {
-    // Save current answer
-    const answerInput = document.getElementById('answer');
-    userAnswers[currentQuestionIndex] = answerInput.value.trim();
+    // No need to save answer here as it's already saved on selection
     
     // Move to next question
     if (currentQuestionIndex < quizQuestions.length - 1) {
@@ -179,9 +208,7 @@ function nextQuestion() {
 }
 
 function previousQuestion() {
-    // Save current answer
-    const answerInput = document.getElementById('answer');
-    userAnswers[currentQuestionIndex] = answerInput.value.trim();
+    // No need to save answer here as it's already saved on selection
     
     // Move to previous question
     if (currentQuestionIndex > 0) {
@@ -257,12 +284,6 @@ function autoSubmitQuiz() {
 // ==========================================
 
 function submitQuiz() {
-    // Save current answer
-    const answerInput = document.getElementById('answer');
-    if (answerInput) {
-        userAnswers[currentQuestionIndex] = answerInput.value.trim();
-    }
-    
     // Stop timer
     clearInterval(timerInterval);
     
@@ -290,10 +311,9 @@ function calculateScore() {
     const results = [];
     
     quizQuestions.forEach((question, index) => {
-        const userAnswer = userAnswers[index].trim().toLowerCase();
-        const isCorrect = question.keywords.some(keyword => 
-            userAnswer === keyword.toLowerCase()
-        );
+        const userAnswer = userAnswers[index] || '';
+        const correctAnswer = question.correctAnswer;
+        const isCorrect = userAnswer === correctAnswer;
         
         if (isCorrect) {
             correctCount++;
@@ -301,8 +321,8 @@ function calculateScore() {
         
         results.push({
             question: question.question,
-            userAnswer: userAnswers[index] || '(No answer)',
-            correctAnswer: question.correctAnswer,
+            userAnswer: userAnswer || '(No answer)',
+            correctAnswer: correctAnswer,
             isCorrect: isCorrect
         });
     });
@@ -356,14 +376,14 @@ function displayResults(score) {
     const answerReview = document.getElementById('answerReview');
     answerReview.innerHTML = score.details.map((detail, index) => `
         <div class="p-4 rounded-lg ${detail.isCorrect ? 'answer-correct' : 'answer-incorrect'}">
-            <p class="font-semibold text-gray-800 mb-2">Q${index + 1}: ${detail.question}</p>
-            <p class="text-sm text-gray-700 mb-1">
+            <p class="font-semibold text-gray-800 dark:text-gray-100 mb-2">Q${index + 1}: ${detail.question}</p>
+            <p class="text-sm text-gray-700 dark:text-gray-300 mb-1">
                 <span class="font-semibold">Your answer:</span> ${detail.userAnswer}
             </p>
-            <p class="text-sm text-gray-700">
+            <p class="text-sm text-gray-700 dark:text-gray-300">
                 <span class="font-semibold">Correct answer:</span> ${detail.correctAnswer}
             </p>
-            <p class="text-sm font-semibold mt-2 ${detail.isCorrect ? 'text-green-700' : 'text-red-700'}">
+            <p class="text-sm font-semibold mt-2 ${detail.isCorrect ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}">
                 ${detail.isCorrect ? '✓ Correct' : '✗ Incorrect'}
             </p>
         </div>
